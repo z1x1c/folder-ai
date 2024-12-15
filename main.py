@@ -79,8 +79,8 @@ def main():
     query = sys.argv[1]
     agent = AIAgent()
     
-    # Get the answer (now with streaming)
-    answer = agent.answer_query(query)
+    # Process the query and display streaming output
+    agent.answer_query(query)
 
 
 if __name__ == "__main__":
