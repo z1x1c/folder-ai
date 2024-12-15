@@ -1,4 +1,4 @@
-# Folder AI Assistant
+# folder-ai
 
 A Python-based AI assistant that helps you understand and navigate your directory contents using natural language queries. The assistant uses the Qwen 2.5 model through Ollama to provide intelligent responses about files and directories in your current working directory.
 
