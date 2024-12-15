@@ -35,11 +35,11 @@ class AIAgent:
             
             # Create prompt for the AI
             prompt = f"""Based on this directory information:
-{dir_info}
+            {dir_info}
 
-Answer this question: {query}
+            Answer this question: {query}
 
-Please provide a concise and relevant answer."""
+            Please provide a concise and relevant answer."""
 
             # Get response from ollama
             response = ollama.chat(model=self.model, messages=[
