@@ -137,12 +137,13 @@ class AIAgent:
 
 
 def main():
-    if len(sys.argv) < 2:
-        console.print("[bold red]Usage:[/] python main.py '<query>'")
-        sys.exit(1)
-
-    query = sys.argv[1]
     agent = AIAgent()
+    
+    if len(sys.argv) < 2:
+        # Use a default query for directory summary
+        query = "Give me a one line summary of the current directory, with relevant file contents"
+    else:
+        query = sys.argv[1]
     
     # Process the query and display streaming output
     agent.answer_query(query)
