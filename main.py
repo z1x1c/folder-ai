@@ -6,6 +6,7 @@ from rich.live import Live
 from rich.markdown import Markdown
 from rich.spinner import Spinner
 import ollama
+import mimetypes
 
 # Initialize the rich console
 console = Console()
@@ -13,20 +14,72 @@ console = Console()
 class AIAgent:
     def __init__(self):
         self.model = "qwen2.5"  # default model
+        self.max_file_size = 1024 * 1024  # 1MB limit for file reading
+        self.text_extensions = {'.txt', '.md', '.py', '.js', '.html', '.css', '.json', '.yaml', '.yml', '.ini', '.conf'}
+        
+    def is_text_file(self, filepath):
+        """Check if a file is a text file based on extension and content"""
+        ext = os.path.splitext(filepath)[1].lower()
+        if ext in self.text_extensions:
+            return True
+        mime_type, _ = mimetypes.guess_type(filepath)
+        return mime_type and mime_type.startswith('text/')
         
     def get_directory_info(self):
-        """Get information about the current directory"""
+        """Get information about the current directory including file contents"""
         try:
-            # Get list of files and directories
-            items = os.listdir('.')
-            files = [f for f in items if os.path.isfile(f)]
-            dirs = [d for d in items if os.path.isdir(d)]
+            summary = []
+            total_files = 0
+            total_dirs = 0
             
-            # Create a summary of the directory
-            summary = f"Directory contains {len(files)} files and {len(dirs)} directories.\n"
-            summary += f"Files: {', '.join(files[:5])}{'...' if len(files) > 5 else ''}\n"
-            summary += f"Directories: {', '.join(dirs[:5])}{'...' if len(dirs) > 5 else ''}"
-            return summary
+            # First, gather structure information
+            for root, dirs, files in os.walk('.'):
+                # Skip dotfolders
+                dirs[:] = [d for d in dirs if not d.startswith('.')]
+                
+                rel_path = os.path.relpath(root, '.')
+                if rel_path == '.':
+                    rel_path = 'current directory'
+                    
+                total_dirs += len(dirs)
+                total_files += len(files)
+                
+                summary.append(f"\n### {rel_path}")
+                
+                # List directories
+                if dirs:
+                    summary.append("\nDirectories:")
+                    for d in dirs:
+                        summary.append(f"- {d}/")
+                
+                # List and process files
+                if files:
+                    summary.append("\nFiles:")
+                    for f in files:
+                        if f.startswith('.'):
+                            summary.append(f"- {f} (dotfile)")
+                            continue
+                            
+                        filepath = os.path.join(root, f)
+                        try:
+                            size = os.path.getsize(filepath)
+                            size_str = f"{size/1024:.1f}KB" if size > 1024 else f"{size}B"
+                            
+                            if size <= self.max_file_size and self.is_text_file(filepath):
+                                with open(filepath, 'r', encoding='utf-8') as file:
+                                    content = file.read()
+                                    summary.append(f"- {f} ({size_str})")
+                                    summary.append(f"```\n{content[:1000]}{'...' if len(content) > 1000 else ''}\n```")
+                            else:
+                                summary.append(f"- {f} ({size_str})")
+                        except Exception as e:
+                            summary.append(f"- {f} (error reading file: {str(e)})")
+            
+            # Create the final summary
+            final_summary = f"Found {total_files} files and {total_dirs} directories\n"
+            final_summary += '\n'.join(summary)
+            return final_summary
+            
         except Exception as e:
             return f"Error reading directory: {str(e)}"
 
@@ -37,7 +90,7 @@ class AIAgent:
             dir_info = self.get_directory_info()
             
             # Create prompt for the AI
-            prompt = f"""Based on this directory information:
+            prompt = f"""Based on this directory information (including file contents):
             {dir_info}
 
             Answer this question: {query}
