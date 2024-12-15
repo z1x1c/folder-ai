@@ -3,6 +3,7 @@ import sys
 from rich.console import Console
 from rich.panel import Panel
 from rich.live import Live
+from rich.markdown import Markdown
 import ollama
 
 # Initialize the rich console
@@ -40,7 +41,12 @@ class AIAgent:
 
             Answer this question: {query}
 
-            Please provide a concise and relevant answer."""
+            Please provide a concise and relevant answer. You can use markdown formatting for:
+            - Code blocks with ```
+            - Lists with - or *
+            - **Bold** or *italic* text
+            - ### Headings
+            - > Quotes"""
 
             # Get streaming response from ollama
             stream = ollama.chat(
@@ -52,12 +58,13 @@ class AIAgent:
             # Initialize response content
             content = ""
             
-            # Create a live display
-            with Live(Panel(content, title=self.summarize_query(query), expand=False), refresh_per_second=10) as live:
+            # Create a live display with markdown rendering
+            with Live(Panel(Markdown(content), title=self.summarize_query(query), expand=False), refresh_per_second=10) as live:
                 for chunk in stream:
                     if 'message' in chunk:
                         content += chunk['message'].get('content', '')
-                        live.update(Panel(content, title=self.summarize_query(query), expand=False))
+                        # Update display with markdown-rendered content
+                        live.update(Panel(Markdown(content), title=self.summarize_query(query), expand=False))
             
             return content
         except Exception as e:
