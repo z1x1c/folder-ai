@@ -12,7 +12,7 @@ A Python-based AI assistant that helps you understand and navigate your director
 ## Prerequisites
 
 - Python 3.x
-- Ollama installed with Qwen 2.5 model
+- Ollama installed with your desired model
 
 ## Dependencies
 
