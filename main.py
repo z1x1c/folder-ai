@@ -99,15 +99,19 @@ class AIAgent:
             - Code blocks with ```
             - Lists with - or *
             - **Bold** or *italic* text
-            - ### Headings
-            - > Quotes"""
+            - > Quotes
+            
+            Do not add any titles or headers at the beginning of your response."""
 
+            # Generate title once before starting
+            title = self.summarize_query(query)
+            
             # Initialize response content and spinner
             content = ""
             spinner = Spinner("dots", text="Thinking...")
             
             # Create a live display with markdown rendering
-            with Live(Panel(spinner, title=self.summarize_query(query), expand=False), refresh_per_second=10) as live:
+            with Live(Panel(spinner, title=title, expand=False), refresh_per_second=10) as live:
                 # Get streaming response from ollama
                 stream = ollama.chat(
                     model=self.model,
@@ -119,21 +123,30 @@ class AIAgent:
                 for chunk in stream:
                     if 'message' in chunk:
                         if not content:  # First chunk
-                            live.update(Panel(Markdown(content), title=self.summarize_query(query), expand=False))
+                            live.update(Panel(Markdown(content), title=title, expand=False))
                         content += chunk['message'].get('content', '')
                         # Update display with markdown-rendered content
-                        live.update(Panel(Markdown(content), title=self.summarize_query(query), expand=False))
+                        live.update(Panel(Markdown(content), title=title, expand=False))
             
             return content
         except Exception as e:
             return f"Error processing query: {str(e)}"
 
     def summarize_query(self, query):
-        """Create a title from the query"""
-        # Remove question marks and capitalize first letter
-        title = query.rstrip('?').capitalize()
-        # Truncate if too long
-        return (title[:50] + '...') if len(title) > 50 else title
+        """Create a concise title from the query using the AI model"""
+        prompt = f"""Create a very short (3-5 words) title that captures the essence of this query: {query}.
+        To give more context, the query is about the current directory and its contents."""
+        try:
+            response = ollama.chat(
+                model=self.model,
+                messages=[{'role': 'user', 'content': prompt}]
+            )
+            title = response['message']['content'].strip().rstrip('.')
+            return title
+        except Exception:
+            # Fallback to simple capitalization if AI fails
+            title = query.rstrip('?').capitalize()
+            return (title[:30] + '...') if len(title) > 30 else title
 
 
 def main():
