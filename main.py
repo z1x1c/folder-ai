@@ -4,6 +4,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.live import Live
 from rich.markdown import Markdown
+from rich.spinner import Spinner
 import ollama
 
 # Initialize the rich console
@@ -48,20 +49,24 @@ class AIAgent:
             - ### Headings
             - > Quotes"""
 
-            # Get streaming response from ollama
-            stream = ollama.chat(
-                model=self.model,
-                messages=[{'role': 'user', 'content': prompt}],
-                stream=True
-            )
-            
-            # Initialize response content
+            # Initialize response content and spinner
             content = ""
+            spinner = Spinner("dots", text="Thinking...")
             
             # Create a live display with markdown rendering
-            with Live(Panel(Markdown(content), title=self.summarize_query(query), expand=False), refresh_per_second=10) as live:
+            with Live(Panel(spinner, title=self.summarize_query(query), expand=False), refresh_per_second=10) as live:
+                # Get streaming response from ollama
+                stream = ollama.chat(
+                    model=self.model,
+                    messages=[{'role': 'user', 'content': prompt}],
+                    stream=True
+                )
+                
+                # Once we get the first chunk, switch from spinner to content
                 for chunk in stream:
                     if 'message' in chunk:
+                        if not content:  # First chunk
+                            live.update(Panel(Markdown(content), title=self.summarize_query(query), expand=False))
                         content += chunk['message'].get('content', '')
                         # Update display with markdown-rendered content
                         live.update(Panel(Markdown(content), title=self.summarize_query(query), expand=False))
