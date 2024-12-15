@@ -2,6 +2,7 @@ import os
 import sys
 from rich.console import Console
 from rich.panel import Panel
+from rich.live import Live
 import ollama
 
 # Initialize the rich console
@@ -41,15 +42,24 @@ class AIAgent:
 
             Please provide a concise and relevant answer."""
 
-            # Get response from ollama
-            response = ollama.chat(model=self.model, messages=[
-                {
-                    'role': 'user',
-                    'content': prompt
-                }
-            ])
+            # Get streaming response from ollama
+            stream = ollama.chat(
+                model=self.model,
+                messages=[{'role': 'user', 'content': prompt}],
+                stream=True
+            )
             
-            return response['message']['content']
+            # Initialize response content
+            content = ""
+            
+            # Create a live display
+            with Live(Panel(content, title=self.summarize_query(query), expand=False), refresh_per_second=10) as live:
+                for chunk in stream:
+                    if 'message' in chunk:
+                        content += chunk['message'].get('content', '')
+                        live.update(Panel(content, title=self.summarize_query(query), expand=False))
+            
+            return content
         except Exception as e:
             return f"Error processing query: {str(e)}"
 
@@ -69,10 +79,8 @@ def main():
     query = sys.argv[1]
     agent = AIAgent()
     
-    # Get the answer and display it
-    title = agent.summarize_query(query)
+    # Get the answer (now with streaming)
     answer = agent.answer_query(query)
-    console.print(Panel(answer, title=title, expand=False))
 
 
 if __name__ == "__main__":
